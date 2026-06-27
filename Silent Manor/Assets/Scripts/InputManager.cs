@@ -6,6 +6,7 @@ public class InputManager : Singleton<InputManager>
     public static Vector2 movement;
 
     public static bool WasTabClicked;
+    public static bool WasInteracted;
     public static bool canPlayerMove = true;
 
     protected override void Awake()
@@ -33,6 +34,7 @@ public class InputManager : Singleton<InputManager>
         else
             movement = Vector2.zero;
 
+        WasInteracted = input.Player.Interact.WasPressedThisFrame();
         WasTabClicked = input.UI.Info.WasPressedThisFrame();
     }
 

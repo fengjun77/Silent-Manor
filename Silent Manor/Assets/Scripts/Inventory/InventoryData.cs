@@ -119,6 +119,7 @@ public class InventoryData
 
             SlotData newSlot = slot;
             newSlot.stackCount += put;
+            SetSlot(i, newSlot);
 
             remain -= put;
         }

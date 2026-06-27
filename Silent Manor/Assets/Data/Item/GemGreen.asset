@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 830aa78953d8ff0498ccea0557cae3e2, type: 3}
+  m_Name: GemGreen
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemId: 25
+  itemName: "\u7EFF\u5B9D\u77F3"
+  itemBasePrefab: {fileID: 1175506547597076529, guid: 5419358178cdb2d49b9b9067fb5d5426, type: 3}
+  maxStackCount: 20
+  icon: {fileID: -4405597807548491620, guid: 55fa6715c4f644d46a2268ed795f4d27, type: 3}

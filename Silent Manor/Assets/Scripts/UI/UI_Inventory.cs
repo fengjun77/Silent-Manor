@@ -2,20 +2,11 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-[System.Serializable]
-public class DefaultInventoryItem
-{
-    public ItemData itemData;
-    [Min(1)] public int stackCount = 1;
-}
-
 public class UI_Inventory : MonoBehaviour
 {
     [Header("格子生成配置")]
     public Transform slotParent;
     public GameObject slotPrefab;
-    public DefaultInventoryItem[] defaultInitItems; //初始物品表
-
     private UI_Slot[] _slotUIs; // 所有生成了的格子
 
     void Start()
@@ -31,11 +22,7 @@ public class UI_Inventory : MonoBehaviour
             _slotUIs[i] = slot;
         }
 
-        // 初始化加载
-        if (!SaveManager.Instance.HasSaveFile())
-        {
-            SpawnDefaultItems();
-        }
+        RefreshAllInventoryUI();
     }
 
     void OnEnable()
@@ -46,16 +33,6 @@ public class UI_Inventory : MonoBehaviour
         EventCenter.OnGameLoaded += RefreshAllInventoryUI;
     }
 
-    void SpawnDefaultItems()
-    {
-        InventoryData inv = InventoryManager.Instance.InventoryData;
-        for (int i = 0; i < defaultInitItems.Length && i < inv.SlotTotal; i++)
-        {
-            DefaultInventoryItem data = defaultInitItems[i];
-            if (data == null) continue;
-            inv.AddItem(data.itemData, data.stackCount);
-        }
-    }
 
     /// <summary>
     /// 刷新所有背包UI

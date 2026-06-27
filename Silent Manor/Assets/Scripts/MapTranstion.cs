@@ -11,6 +11,9 @@ public class MapTranstion : MonoBehaviour
     [SerializeField] private Direction dir;
     public float offset = 1.5f;
 
+    [Header("切换后所属地图ID")]
+    public string targetMapId;
+
     enum Direction{ Up, Down, Left, Right }
 
     void Awake()
@@ -40,6 +43,14 @@ public class MapTranstion : MonoBehaviour
         
         confiner.BoundingShape2D = targetMapBound;
         UpdatePlayerPos(player); // 淡出后再移动玩家
+
+        // 过渡完成后更新当前地图标识
+        if (!string.IsNullOrEmpty(targetMapId) && MapManager.Instance != null)
+        {
+            MapManager.Instance.SetCurrentMap(targetMapId);
+        }
+
+        SoundManager.Instance.Play("MapTranstion", false);
         
         yield return new WaitForSeconds(1f); // 可选：短暂停留
         mapTranstionFade.FadeIn();

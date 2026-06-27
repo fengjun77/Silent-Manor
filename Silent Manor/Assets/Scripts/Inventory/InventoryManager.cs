@@ -1,6 +1,13 @@
 using Unity.VisualScripting;
 using UnityEngine;
 
+[System.Serializable]
+public class DefaultInventoryItem
+{
+    public ItemData itemData;
+    [Min(1)] public int stackCount = 1;
+}
+
 public class InventoryManager : Singleton<InventoryManager>
 {
     [Header("背包配置")]
@@ -9,6 +16,8 @@ public class InventoryManager : Singleton<InventoryManager>
     public UI_Inventory inventoryUI;
 
     public InventoryData InventoryData { get; private set; }
+
+    public DefaultInventoryItem[] defaultInitItems; //初始物品表
 
     protected override void Awake()
     {
@@ -45,6 +54,20 @@ public class InventoryManager : Singleton<InventoryManager>
         {
             SavedSlot s = saveData.slots[i];
             InventoryData.SetSlot(i, new SlotData(s.itemId, s.stackCount));
+        }
+    }
+
+    /// 加载默认物品，调用AddItem自动堆叠
+    public void SpawnDefaultInventoryItems()
+    {
+        // 先清空背包，防止残留空数据干扰
+        InventoryData.ClearAllSlots();
+
+        foreach (var cfg in defaultInitItems)
+        {
+            if (cfg.itemData == null || cfg.stackCount <= 0) continue;
+            // 自动堆叠、自动分配空格
+            AddItem(cfg.itemData, cfg.stackCount);
         }
     }
 
