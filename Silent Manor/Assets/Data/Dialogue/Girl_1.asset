@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2cb8e695f99a7e43ad490421141da1e, type: 3}
+  m_Name: Girl_1
+  m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
+  npcName: "\u7CA5\u7CA5"
+  npcIcon: {fileID: -7527145504033472756, guid: b2ff99dd18c94c142a9949d53b2255de, type: 3}
+  dialogueLines:
+  - "\u4F60\u597D\u5440\uFF0C\u4ECA\u5929\u51C6\u5907\u5E72\u4E9B\u4EC0\u4E48\u5462"
+  - "\u5982\u679C\u4F60\u6709\u591A\u4F59\u7684\u852C\u83DC\uFF0C\u53EF\u4EE5\u5356\u7ED9\u6211\u54E6"
+  autoProgressLines: 0100
+  autoProgressDelay: 1.5
+  typingSpeed: 0.05
+  voiceSound: {fileID: 8300000, guid: 42eacabb30b4d8c4cb2e75e5a291870e, type: 3}
+  voicePitch: 1

@@ -21,8 +21,10 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        Move(InputManager.movement);
-        
+        if(GameManager.Instance.IsGamePaused)
+            return;
+
+        Move(InputManager.movement); 
     }
 
     private void Move(Vector2 moveInput)

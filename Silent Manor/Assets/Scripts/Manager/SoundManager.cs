@@ -4,8 +4,9 @@ using UnityEngine.UI;
 
 public class SoundManager : Singleton<SoundManager>
 {
-    private AudioSource randomPitchAudioSource;
     private AudioSource audioSource;
+    private AudioSource randomPitchAudioSource;
+    private AudioSource voiceAudioSource;
     public Slider sfxSlider;
 
     [SerializeField] private SoundEffectGroup[] soundEffectGroups;
@@ -18,6 +19,7 @@ public class SoundManager : Singleton<SoundManager>
         AudioSource[] audioSources = GetComponents<AudioSource>();
         audioSource = audioSources[0];
         randomPitchAudioSource = audioSources[1];
+        voiceAudioSource = audioSources[2];
 
         Init();
     }
@@ -66,10 +68,17 @@ public class SoundManager : Singleton<SoundManager>
         }
     }
 
+    public void PlayClip(AudioClip audioClip, float pitch)
+    {
+        voiceAudioSource.pitch = pitch;
+        voiceAudioSource.PlayOneShot(audioClip);
+    }
+
     public void SetVolume(float volume)
     {
         randomPitchAudioSource.volume = volume;
         audioSource.volume = volume;
+        voiceAudioSource.volume = volume;
     }
 
     public void OnValueChanged()

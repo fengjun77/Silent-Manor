@@ -7,7 +7,9 @@ public class InputManager : Singleton<InputManager>
 
     public static bool WasTabClicked;
     public static bool WasInteracted;
-    public static bool canPlayerMove = true;
+    public static bool WasSpaceClicked;
+
+    public static bool CanPlayerMove = true;
 
     protected override void Awake()
     {
@@ -29,13 +31,15 @@ public class InputManager : Singleton<InputManager>
 
     void Update()
     {
-        if(canPlayerMove)
+        if(CanPlayerMove)
             movement = input.Player.Move.ReadValue<Vector2>();
         else
             movement = Vector2.zero;
 
         WasInteracted = input.Player.Interact.WasPressedThisFrame();
         WasTabClicked = input.UI.Info.WasPressedThisFrame();
+
+        WasSpaceClicked = input.UI.Click.WasPressedThisFrame();
     }
 
     void OnDestroy()

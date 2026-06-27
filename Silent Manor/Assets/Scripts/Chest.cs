@@ -20,14 +20,13 @@ public enum ChestType
     PermanentOnce
 }
 
-public class Chest : MonoBehaviour
+public class Chest : MonoBehaviour, IInteractable
 {
     [Header("交互设置")]
-    public float interactRange = 2f;
-    public GameObject tipIconPrefab;
-    public float iconFloatSpeed = 1f;
-    public float iconFloatOffset = 0.3f;
+    public float interactRange = 1f;
+    public float iconHeightOffset = 1.2f; // 图标生成高度
     public float destroyDelay = 2f;
+
 
     [Header("宝箱类型配置")]
     public ChestType chestType;
@@ -41,9 +40,7 @@ public class Chest : MonoBehaviour
     public List<TreasureDropItem> dropPool = new List<TreasureDropItem>();
 
     private bool isOpened = false;
-    private GameObject tipIconObj;
-    private Transform playerTrans;
-    private Vector3 iconOriginPos;
+
     private SpriteRenderer sr;
     public Sprite openSprite;
 
@@ -53,12 +50,7 @@ public class Chest : MonoBehaviour
     }
 
     void Start()
-    {
-        // 预先找玩家
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
-            playerTrans = player.transform;
-        
+    {   
         // 加载时根据类型初始化宝箱状态
         Invoke(nameof(InitChestState), 0.1f);
     }
@@ -87,50 +79,6 @@ public class Chest : MonoBehaviour
         }
     }
 
-    void Update()
-    {
-        if (isOpened || playerTrans == null) return;
-
-        float distance = Vector3.Distance(transform.position, playerTrans.position);
-        bool inRange = distance <= interactRange;
-
-        // 刷新型宝箱额外判断：怪物是否全部清除，有怪物无法交互
-        bool canInteract = true;
-        if (chestType == ChestType.Refreshable)
-        {
-            canInteract = CheckAllMonsterDead();
-        }
-
-        // 玩家在范围内，生成/显示头顶图标
-        if (inRange && canInteract)
-        {
-            if (tipIconObj == null)
-            {
-                SpawnTipIcon();
-            }
-            // 上下浮动动画
-            float floatY = Mathf.Sin(Time.time * iconFloatSpeed) * iconFloatOffset;
-            Vector3 targetWorldPos = iconOriginPos;
-            targetWorldPos.y += floatY;
-            tipIconObj.transform.position = targetWorldPos;
-
-            // 按F开启宝箱
-            if (Input.GetKeyDown(KeyCode.F))
-            {
-                OpenBox();
-            }
-        }
-        else
-        {
-            // 离开范围销毁图标
-            if (tipIconObj != null)
-            {
-                Destroy(tipIconObj);
-                tipIconObj = null;
-            }
-        }
-    }
-
     // 检测区域所有怪物是否全部死亡
     bool CheckAllMonsterDead()
     {
@@ -142,63 +90,6 @@ public class Chest : MonoBehaviour
                 return false;
         }
         return true;
-    }
-
-    // 生成头顶浮动图标
-    void SpawnTipIcon()
-    {
-        if (tipIconPrefab == null) return;
-        iconOriginPos = transform.position + Vector3.up * 1.2f;
-        tipIconObj = Instantiate(tipIconPrefab, iconOriginPos, Quaternion.identity, transform);
-    }
-
-    void OpenBox()
-    {
-        isOpened = true;
-        sr.sprite = openSprite;
-
-        SoundManager.Instance.Play("Chest", false);
-
-        // 销毁头顶提示图标
-        if (tipIconObj != null)
-        {
-            Destroy(tipIconObj);
-            tipIconObj = null;
-        }
-
-        // 1. 根据权重随机选一个物品
-        TreasureDropItem drop = GetRandomDropByWeight();
-        if (drop == null || drop.itemData == null)
-        {
-            Debug.LogWarning("宝箱无有效掉落物品！");
-            Destroy(gameObject, destroyDelay);
-            return;
-        }
-
-        // 2. 随机数量
-        int randomCount = Random.Range(drop.minCount, drop.maxCount + 1);
-
-        // 物品直接进背包
-        int remain = InventoryManager.Instance.AddItem(drop.itemData, randomCount);
-        int getNum = randomCount - remain;
-
-        if (getNum > 0)
-        {
-            TipManager.Instance.ShowGetItemTip(drop.itemData, getNum);
-        }
-        if (remain > 0)
-        {
-            Debug.Log($"背包已满，剩余{remain}个无法拾取");
-        }
-
-        // 永久一次性宝箱：存入存档已开启列表
-        if (chestType == ChestType.PermanentOnce)
-        {
-            SaveManager.Instance.AddOpenedChestId(chestUniqueId);
-        }
-
-        // 2秒后销毁宝箱
-        Destroy(gameObject, destroyDelay);
     }
 
     /// <summary>按权重随机抽取掉落，权重越大概率越高</summary>
@@ -228,5 +119,52 @@ public class Chest : MonoBehaviour
             }
         }
         return null;
+    }
+
+    public bool CanInteract()
+    {
+        // 菜单打开直接禁止交互
+        if (GameManager.Instance.IsMenuOpen)
+            return false;
+
+        if (isOpened) return false;
+        // 刷新型需要清怪
+        if (chestType == ChestType.Refreshable)
+            return CheckAllMonsterDead();
+        return true;
+    }
+
+    public void Interact()
+    {
+        isOpened = true;
+        sr.sprite = openSprite;
+        SoundManager.Instance.Play("Chest", false);
+
+        TreasureDropItem drop = GetRandomDropByWeight();
+        if (drop == null)
+        {
+            Destroy(gameObject, destroyDelay);
+            return;
+        }
+
+        int randomCount = Random.Range(drop.minCount, drop.maxCount + 1);
+        int remain = InventoryManager.Instance.AddItem(drop.itemData, randomCount);
+        int getNum = randomCount - remain;
+
+        if (getNum > 0) TipManager.Instance.ShowGetItemTip(drop.itemData, getNum);
+        if (remain > 0) Debug.Log($"背包已满，剩余{remain}无法拾取");
+
+        if (chestType == ChestType.PermanentOnce)
+        {
+            SaveManager.Instance.AddOpenedChestId(chestUniqueId);
+            SaveManager.Instance.SaveGame();
+        }
+
+        Destroy(gameObject, destroyDelay);
+    }
+
+    public Vector3 GetIconSpawnPos()
+    {
+        return transform.position + Vector3.up * iconHeightOffset;
     }
 }
