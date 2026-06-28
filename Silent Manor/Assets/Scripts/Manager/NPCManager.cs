@@ -52,6 +52,40 @@ public class NPCManager : Singleton<NPCManager>
     #region 打开对话
     private void OpenDialogue(NPC npc)
     {
+        if (npc == null || TaskManager.Instance == null)
+        {
+            Debug.LogError("NPC或TaskManager为空，无法打开对话");
+            return;
+        }
+        var taskMgr = TaskManager.Instance;
+        string npcId = npc.npcId;
+        NpcTaskStatus status = taskMgr.GetNpcCurrentTaskStatus(npcId);
+
+        // 增加默认对话兜底
+        switch (status)
+        {
+            case NpcTaskStatus.CanTakeNewTask:
+                npc.dialogueData = npc.dialogue_CanTakeTask ?? npc.dialogue_Normal;
+                break;
+            case NpcTaskStatus.TaskRunning:
+                npc.dialogueData = npc.dialogue_TaskRunning ?? npc.dialogue_Normal;
+                break;
+            case NpcTaskStatus.WaitSubmit:
+                npc.dialogueData = npc.dialogue_WaitSubmit ?? npc.dialogue_Normal;
+                break;
+            case NpcTaskStatus.NoAnyTask:
+            default:
+                npc.dialogueData = npc.dialogue_Normal;
+                break;
+        }
+
+        // 最终兜底：若所有对话数据都为空，直接返回
+        if (npc.dialogueData == null)
+        {
+            Debug.LogError($"NPC {npcId} 无任何对话数据，请检查配置");
+            return;
+        }
+
         CurrentTalkingNPC = npc;
         dialogueIndex = 0;
         isInBranchDialogue = false;
@@ -131,40 +165,59 @@ public class NPCManager : Singleton<NPCManager>
     }
 
     // 传入当前行，不再读取数组
-void CheckBranchOptions(NPC npc, DialogueLine currentLine)
-{
-    NPCDialogue data = npc.dialogueData;
-    dialogueUI.ClearAllBranchBtns();
-    isInBranchDialogue = false;
-
-    DialogueBranch br = currentLine.branch;
-    if (br == null || br.options == null || br.options.Length == 0)
-        return;
-
-    isInBranchDialogue = true;
-    dialogueUI.branchContainer.SetActive(true);
-
-    foreach (var opt in br.options)
+    void CheckBranchOptions(NPC npc, DialogueLine currentLine)
     {
-        Button btn = Instantiate(dialogueUI.branchBtnPrefab, dialogueUI.branchContainer.transform);
-        btn.gameObject.SetActive(true);
-        TextMeshProUGUI txt = btn.GetComponentInChildren<TextMeshProUGUI>();
-        if (txt != null) txt.text = opt.optionText;
+        NPCDialogue data = npc.dialogueData;
+        dialogueUI.ClearAllBranchBtns();
+        isInBranchDialogue = false;
 
-        DialogueBranchOption cacheOpt = opt;
-        btn.onClick.AddListener(() => OnBranchClick(cacheOpt.jumpToLineIndex));
+        DialogueBranch br = currentLine.branch;
+        if (br == null || br.options == null || br.options.Length == 0)
+            return;
+
+        isInBranchDialogue = true;
+        dialogueUI.branchContainer.SetActive(true);
+
+        foreach (var opt in br.options)
+        {
+            Button btn = Instantiate(dialogueUI.branchBtnPrefab, dialogueUI.branchContainer.transform);
+            btn.gameObject.SetActive(true);
+            TextMeshProUGUI txt = btn.GetComponentInChildren<TextMeshProUGUI>();
+            if (txt != null) txt.text = opt.optionText;
+
+            DialogueBranchOption cacheOpt = opt;
+            btn.onClick.AddListener(() => OnBranchClick(cacheOpt));
+        }
     }
-}
 
     // 分支点击跳转
-    void OnBranchClick(int jumpIndex)
+    void OnBranchClick(DialogueBranchOption opt)
     {
         NPC npc = CurrentTalkingNPC;
         NPCDialogue data = npc.dialogueData;
         dialogueUI.ClearAllBranchBtns();
         isInBranchDialogue = false;
 
-        // 跳转校验
+        // ========== 新增：处理任务相关操作 ==========
+        if (!string.IsNullOrEmpty(opt.bindTaskId))
+        {
+            var taskMgr = TaskManager.Instance;
+            switch (opt.taskOperate)
+            {
+                case BranchTaskOperate.TakeTask:
+                    // 点击接受任务分支
+                    taskMgr.TryTakeTask(opt.bindTaskId);
+                    break;
+                case BranchTaskOperate.SubmitTask:
+                    // 点击提交任务分支
+                    taskMgr.SubmitTask(opt.bindTaskId);
+                    break;
+            }
+        }
+        // ==========================================
+
+        // 跳转逻辑
+        int jumpIndex = opt.jumpToLineIndex;
         if (jumpIndex < 0 || jumpIndex >= data.lines.Count)
         {
             CloseCurrentDialogue();

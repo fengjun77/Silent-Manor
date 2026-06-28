@@ -148,6 +148,7 @@ public class Chest : MonoBehaviour, IInteractable
         }
 
         int randomCount = Random.Range(drop.minCount, drop.maxCount + 1);
+        EventCenter.OnItemPickUp?.Invoke(drop.itemData.itemId, randomCount);
         int remain = InventoryManager.Instance.AddItem(drop.itemData, randomCount);
         int getNum = randomCount - remain;
 

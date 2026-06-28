@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f57822fa92f9d746ab101c6df99250e, type: 3}
+  m_Name: Collect2
+  m_EditorClassIdentifier: Assembly-CSharp::TaskSO
+  taskId: 1
+  taskName: "\u83B7\u53D6\u94DC\u5757"
+  taskDetail: "\u5E2E\u52A9\u7CA5\u7CA5\u83B7\u5F97\u4E00\u5757\u94DC\u5757\u505A\u665A\u9910"
+  ownerNpcId: 2001
+  preTaskId: 0
+  nextTaskId: 2
+  objectives:
+  - descText: "\u94DC\u5757"
+    objType: 0
+    targetId: 20
+    needCount: 1
+  rewardItems:
+  - itemId: 1
+    count: 2
+  rewardGold: 10
+  canRetakeAfterAbandon: 1

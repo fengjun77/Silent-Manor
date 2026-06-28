@@ -29,6 +29,19 @@ public class DialogueBranchOption
 {
     public string optionText;
     public int jumpToLineIndex;
+
+    // 空字符串 = 普通分支，不触发任务逻辑
+    public string bindTaskId;
+    // 分支任务行为类型
+    public BranchTaskOperate taskOperate;
+}
+
+// 分支点击后对任务执行的操作
+public enum BranchTaskOperate
+{
+    None, // 无任务操作，普通对话跳转
+    TakeTask, // 接受任务
+    SubmitTask // 提交任务
 }
 
 [CreateAssetMenu(menuName = "Data/NPCDialogue", fileName = "NewDialogueData")]

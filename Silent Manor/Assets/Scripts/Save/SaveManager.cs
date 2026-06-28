@@ -9,6 +9,7 @@ public class InventorySaveData
 {
     public int totalSlotCount;
     public SavedSlot[] slots;
+    public int saveGold;
 }
 
 [Serializable]
@@ -53,6 +54,8 @@ public class SaveManager : Singleton<SaveManager>
         saveData.currentMapId = MapManager.Instance.GetCurrentMapId();
 
         saveData.sfxVolume = SoundManager.Instance.GetCurrentSfxVolume();
+
+        TaskProgressManager.Instance.SaveProgress();
 
         //背包数据（对接你的InventoryManager获取最新背包数据）
         saveData.inventoryData = InventoryManager.Instance.ExportInventorySaveData();
@@ -103,6 +106,8 @@ public class SaveManager : Singleton<SaveManager>
         MapManager.Instance.RestoreMapId(saveData.currentMapId);
 
         SoundManager.Instance.LoadSfxVolume(saveData.sfxVolume);
+
+        TaskProgressManager.Instance.LoadProgress();
 
         //恢复背包数据
         InventoryManager.Instance.LoadFromSaveData(saveData.inventoryData);

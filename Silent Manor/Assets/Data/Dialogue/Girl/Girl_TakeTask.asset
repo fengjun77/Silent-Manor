@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2cb8e695f99a7e43ad490421141da1e, type: 3}
+  m_Name: Girl_TakeTask
+  m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
+  npcName: "\u7CA5\u7CA5"
+  npcIcon: {fileID: -7527145504033472756, guid: b2ff99dd18c94c142a9949d53b2255de, type: 3}
+  typingSpeed: 0.05
+  voiceSound: {fileID: 8300000, guid: 42eacabb30b4d8c4cb2e75e5a291870e, type: 3}
+  voicePitch: 1
+  lines:
+  - text: "\u53EF\u4EE5\u5E2E\u6211\u4E00\u4E2A\u5FD9\u561B\uFF1F"
+    autoProgress: 0
+    autoDelay: 0
+    endDialogueAfterThisLine: 0
+    branch:
+      options:
+      - optionText: "\u53EF\u4EE5"
+        jumpToLineIndex: 1
+        bindTaskId: 
+        taskOperate: 0
+      - optionText: "\u73B0\u5728\u6CA1\u7A7A"
+        jumpToLineIndex: 2
+        bindTaskId: 
+        taskOperate: 1
+  - text: "\u5E2E\u6211\u6536\u96C6\u4E94\u5757\u725B\u8089\u5427\uFF0C\u6211\u51C6\u5907\u505A\u4E2A\u725B\u8089\u665A\u5BB4"
+    autoProgress: 0
+    autoDelay: 0
+    endDialogueAfterThisLine: 0
+    branch:
+      options:
+      - optionText: "\u53EF\u4EE5"
+        jumpToLineIndex: -1
+        bindTaskId: 0
+        taskOperate: 1
+      - optionText: "\u73B0\u5728\u6CA1\u7A7A"
+        jumpToLineIndex: 2
+        bindTaskId: 
+        taskOperate: 0
+  - text: "\u597D\u5427\uFF0C\u518D\u89C1"
+    autoProgress: 0
+    autoDelay: 0
+    endDialogueAfterThisLine: 1
+    branch:
+      options:
+      - optionText: "\u53EF\u4EE5"
+        jumpToLineIndex: -1
+        bindTaskId: 0
+        taskOperate: 1
+      - optionText: "\u73B0\u5728\u6CA1\u7A7A"
+        jumpToLineIndex: 2
+        bindTaskId: 
+        taskOperate: 0

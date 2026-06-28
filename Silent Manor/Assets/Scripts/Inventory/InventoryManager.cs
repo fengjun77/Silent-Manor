@@ -11,6 +11,7 @@ public class DefaultInventoryItem
 public class InventoryManager : Singleton<InventoryManager>
 {
     [Header("背包配置")]
+    public int playerGold;
     public int inventorySlotCount = 24;
     public ItemData[] allItemDatabase;
     public UI_Inventory inventoryUI;
@@ -30,6 +31,7 @@ public class InventoryManager : Singleton<InventoryManager>
     {
         InventorySaveData save = new InventorySaveData();
         save.totalSlotCount = InventoryData.SlotTotal;
+        save.saveGold = playerGold;
         save.slots = new SavedSlot[save.totalSlotCount];
 
         for (int i = 0; i < save.totalSlotCount; i++)
@@ -47,10 +49,10 @@ public class InventoryManager : Singleton<InventoryManager>
     // 读档时导入背包数据
     public void LoadFromSaveData(InventorySaveData saveData)
     {
-        // 容错：存档格子数和当前背包不一致时截断
+        playerGold = saveData.saveGold;
+        // 修复：使用limit限制遍历范围
         int limit = Mathf.Min(saveData.slots.Length, InventoryData.SlotTotal);
-
-        for (int i = 0; i < saveData.slots.Length; i++)
+        for (int i = 0; i < limit; i++) // 原逻辑是i < saveData.slots.Length，改为limit
         {
             SavedSlot s = saveData.slots[i];
             InventoryData.SetSlot(i, new SlotData(s.itemId, s.stackCount));
@@ -94,4 +96,73 @@ public class InventoryManager : Singleton<InventoryManager>
         if (item == null || stackNum <= 0) return;
         InventoryData.SetSlot(slotIndex, new SlotData(item.itemId, stackNum));
     }
+
+    #region 任务系统专用接口
+    /// <summary>
+    /// 根据物品数字ID，查询背包内该道具总堆叠数量
+    /// </summary>
+    public int GetItemCount(int targetItemId)
+    {
+        int total = 0;
+        for (int i = 0; i < InventoryData.SlotTotal; i++)
+        {
+            SlotData slot = InventoryData.GetSlot(i);
+            if (slot.itemId == targetItemId)
+            {
+                total += slot.stackCount;
+            }
+        }
+        return total;
+    }
+
+    /// <summary>
+    /// 扣除指定ID、指定数量道具（任务提交消耗）
+    /// </summary>
+    public void ConsumeItem(int targetItemId, int consumeCount)
+    {
+        int remainRemove = consumeCount;
+        // 从前往后遍历扣除
+        for (int i = 0; i < InventoryData.SlotTotal && remainRemove > 0; i++)
+        {
+            SlotData slot = InventoryData.GetSlot(i);
+            if (slot.itemId != targetItemId || slot.stackCount <= 0)
+                continue;
+
+            if (slot.stackCount > remainRemove)
+            {
+                // 当前格子数量足够扣剩余
+                InventoryData.SetSlot(i, new SlotData(slot.itemId, slot.stackCount - remainRemove));
+                remainRemove = 0;
+            }
+            else
+            {
+                // 格子全部扣空，清空格子
+                remainRemove -= slot.stackCount;
+                InventoryData.SetSlot(i, new SlotData(0, 0));
+            }
+        }
+    }
+
+    /// <summary>
+    /// 任务奖励添加道具（传入数字ID）
+    /// </summary>
+    public void AddItemById(int itemId, int addCount)
+    {
+        ItemData itemCfg = GetItemById(itemId);
+        if (itemCfg == null)
+        {
+            Debug.LogWarning($"物品数据库不存在ID:{itemId}");
+            return;
+        }
+        AddItem(itemCfg, addCount);
+    }
+
+    /// <summary>
+    /// 任务奖励增加金币
+    /// </summary>
+    public void AddGold(int addGold)
+    {
+        playerGold += addGold;
+    }
+    #endregion
 }
