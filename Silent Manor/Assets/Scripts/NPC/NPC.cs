@@ -1,16 +1,10 @@
-using System.Collections;
-using System.Text;
-using TMPro;
+
 using UnityEngine;
-using UnityEngine.UI;
 
 public class NPC : MonoBehaviour, IInteractable
 {
-    [Header("对话数据")]
+    [Header("仅对话数据，无需绑定任何UI")]
     public NPCDialogue dialogueData;
-    public GameObject dialoguePanel;
-    public TextMeshProUGUI dialogueText, nameText;
-    public Image portraitImage;
 
     [Header("交互")]
     public float iconHeightOffset = 1.3f;
@@ -23,11 +17,6 @@ public class NPC : MonoBehaviour, IInteractable
         NPCManager.Instance.RegisterNPC(this);
     }
 
-    void OnDestroy()
-    {
-        //NPCManager.Instance.UnRegisterNPC(this);
-    }
-
     #region IInteractable
     public bool CanInteract()
     {
@@ -38,10 +27,7 @@ public class NPC : MonoBehaviour, IInteractable
     {
         if (Time.time - lastSkipTime < skipCoolDown) return;
         lastSkipTime = Time.time;
-
         if (dialogueData == null) return;
-
-        // 全部交给管理器处理对话逻辑
         NPCManager.Instance.OnNPCInteract(this);
     }
 

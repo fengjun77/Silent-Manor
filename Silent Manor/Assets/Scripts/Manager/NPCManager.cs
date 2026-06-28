@@ -1,22 +1,26 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class NPCManager : Singleton<NPCManager>
 {
-    // 所有NPC缓存
-    private List<NPC> allNpcs = new List<NPC>();
+    [Header("全局唯一对话UI，只拖一次")]
+    public UI_Dialogue dialogueUI;
 
-    // 当前正在对话的NPC
+    private List<NPC> allNpcs = new List<NPC>();
     public NPC CurrentTalkingNPC { get; private set; }
 
-    // 对话状态缓存
     private int dialogueIndex;
     private bool isTyping;
+    private bool isInBranchDialogue; // 是否处于分支选择阶段
+    // 新增：当前行是分支行，打字阶段就禁用跳过
+    private bool waitingBranchPop;
     private Coroutine typeCoroutine;
 
-    #region NPC注册注销
+    #region 注册注销
     public void RegisterNPC(NPC npc)
     {
         if (!allNpcs.Contains(npc))
@@ -27,53 +31,48 @@ public class NPCManager : Singleton<NPCManager>
     {
         if (allNpcs.Contains(npc))
             allNpcs.Remove(npc);
-
-        // 如果销毁的NPC正是当前对话对象，强制关闭对话
         if (CurrentTalkingNPC == npc)
             CloseCurrentDialogue();
     }
     #endregion
 
-    #region 交互入口 NPC.Interact 调用
+    #region NPC交互入口
     public void OnNPCInteract(NPC npc)
     {
-        // 已有对话在进行 → 跳过打字/下一句
         if (CurrentTalkingNPC != null)
         {
-            if (CurrentTalkingNPC != npc) return; // 不能操作其他NPC对话
+            if (CurrentTalkingNPC != npc) return;
             NextLine();
             return;
         }
-
-        // 开启新对话
         OpenDialogue(npc);
     }
     #endregion
 
-    #region 开启对话
+    #region 打开对话
     private void OpenDialogue(NPC npc)
     {
         CurrentTalkingNPC = npc;
         dialogueIndex = 0;
+        isInBranchDialogue = false;
 
-        // UI赋值
-        npc.nameText.SetText(npc.dialogueData.npcName);
-        npc.portraitImage.sprite = npc.dialogueData.npcIcon;
-        npc.dialoguePanel.SetActive(true);
+        // 给全局UI赋值NPC数据
+        NPCDialogue data = npc.dialogueData;
+        dialogueUI.txtName.text = data.npcName;
+        dialogueUI.portraitImage.sprite = data.npcIcon;
+        dialogueUI.txtContent.text = "";
+        dialogueUI.ClearAllBranchBtns();
+        dialogueUI.gameObject.SetActive(true);
 
-        // 游戏逻辑暂停（禁止玩家移动）
         InputManager.CanPlayerMove = false;
-
-        // 锁定NPC巡逻移动
         WaypointMover mover = npc.GetComponent<WaypointMover>();
         if (mover != null) mover.isLockedByDialogue = true;
 
-        // 启动打字
         RunTypeLine();
     }
     #endregion
 
-    #region 打字协程
+    #region 打字协程 + 分支检测
     void RunTypeLine()
     {
         if (typeCoroutine != null) StopCoroutine(typeCoroutine);
@@ -84,91 +83,157 @@ public class NPCManager : Singleton<NPCManager>
     {
         isTyping = true;
         NPC npc = CurrentTalkingNPC;
-        npc.dialogueText.SetText("");
-        string targetLine = npc.dialogueData.dialogueLines[dialogueIndex];
+        NPCDialogue data = npc.dialogueData;
+        DialogueLine currentLine = data.lines[dialogueIndex];
+
+        dialogueUI.txtContent.SetText("");
+
+        // 提前判断本行是否带分支，打字阶段锁定跳过
+        waitingBranchPop = false;
+        if (currentLine.branch != null && currentLine.branch.options != null && currentLine.branch.options.Length > 0)
+        {
+            waitingBranchPop = true;
+        }
+
+        string targetLine = currentLine.text;
         StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < targetLine.Length; i++)
         {
             char letter = targetLine[i];
             sb.Append(letter);
-            npc.dialogueText.text = sb.ToString();
-
+            dialogueUI.txtContent.text = sb.ToString();
             if (i == 0)
-            {
-                SoundManager.Instance.PlayClip(npc.dialogueData.voiceSound, npc.dialogueData.voicePitch);
-            }
-            yield return new WaitForSeconds(npc.dialogueData.typingSpeed);
+                SoundManager.Instance.PlayClip(data.voiceSound, data.voicePitch);
+            yield return new WaitForSeconds(data.typingSpeed);
         }
 
         isTyping = false;
+        waitingBranchPop = false;
 
-        // 自动跳转延时
-        if (dialogueIndex < npc.dialogueData.autoProgressLines.Length && npc.dialogueData.autoProgressLines[dialogueIndex])
+        // 生成分支按钮
+        CheckBranchOptions(npc, currentLine);
+
+        // 判断读完直接结束对话
+        if (currentLine.endDialogueAfterThisLine)
         {
-            yield return new WaitForSeconds(npc.dialogueData.autoProgressDelay);
+            yield return new WaitForSeconds(currentLine.autoDelay);
+            CloseCurrentDialogue();
+            yield break;
+        }
+
+        // 非分支行且开启自动推进
+        if (!isInBranchDialogue && currentLine.autoProgress)
+        {
+            yield return new WaitForSeconds(currentLine.autoDelay);
             NextLine();
         }
     }
+
+    // 传入当前行，不再读取数组
+void CheckBranchOptions(NPC npc, DialogueLine currentLine)
+{
+    NPCDialogue data = npc.dialogueData;
+    dialogueUI.ClearAllBranchBtns();
+    isInBranchDialogue = false;
+
+    DialogueBranch br = currentLine.branch;
+    if (br == null || br.options == null || br.options.Length == 0)
+        return;
+
+    isInBranchDialogue = true;
+    dialogueUI.branchContainer.SetActive(true);
+
+    foreach (var opt in br.options)
+    {
+        Button btn = Instantiate(dialogueUI.branchBtnPrefab, dialogueUI.branchContainer.transform);
+        btn.gameObject.SetActive(true);
+        TextMeshProUGUI txt = btn.GetComponentInChildren<TextMeshProUGUI>();
+        if (txt != null) txt.text = opt.optionText;
+
+        DialogueBranchOption cacheOpt = opt;
+        btn.onClick.AddListener(() => OnBranchClick(cacheOpt.jumpToLineIndex));
+    }
+}
+
+    // 分支点击跳转
+    void OnBranchClick(int jumpIndex)
+    {
+        NPC npc = CurrentTalkingNPC;
+        NPCDialogue data = npc.dialogueData;
+        dialogueUI.ClearAllBranchBtns();
+        isInBranchDialogue = false;
+
+        // 跳转校验
+        if (jumpIndex < 0 || jumpIndex >= data.lines.Count)
+        {
+            CloseCurrentDialogue();
+            return;
+        }
+        dialogueIndex = jumpIndex;
+        RunTypeLine();
+    }
     #endregion
 
-    #region 下一句 / 跳过打字
+    #region 下一句（分支阶段禁用）
     public void NextLine()
     {
         NPC npc = CurrentTalkingNPC;
-        if (npc == null) return;
+        NPCDialogue data = npc.dialogueData;
+        DialogueLine currentLine = data.lines[dialogueIndex];
 
-        // 正在打字：直接显示完整文字
+        if (npc == null || isInBranchDialogue) return;
+
+        if (isInBranchDialogue || waitingBranchPop)
+            return;
+
+        if (currentLine.endDialogueAfterThisLine)
+        {
+            CloseCurrentDialogue();
+            return;
+        }
+
         if (isTyping)
         {
             if (typeCoroutine != null) StopCoroutine(typeCoroutine);
-            npc.dialogueText.SetText(npc.dialogueData.dialogueLines[dialogueIndex]);
+            dialogueUI.txtContent.text = npc.dialogueData.lines[dialogueIndex].text;
             isTyping = false;
             return;
         }
 
-        // 切换下一段
         dialogueIndex++;
-        if (dialogueIndex < npc.dialogueData.dialogueLines.Length)
-        {
+        if (dialogueIndex < npc.dialogueData.lines.Count)
             RunTypeLine();
-        }
         else
-        {
             CloseCurrentDialogue();
-        }
     }
     #endregion
 
-    #region 统一关闭对话（UI按钮直接调用这个）
+    #region 统一关闭对话
     public void CloseCurrentDialogue()
     {
         if (CurrentTalkingNPC == null) return;
-
         NPC npc = CurrentTalkingNPC;
 
-        // 停止打字协程
         if (typeCoroutine != null)
         {
             StopCoroutine(typeCoroutine);
             typeCoroutine = null;
         }
 
-        // 清空UI
-        npc.dialogueText.SetText("");
-        npc.dialoguePanel.SetActive(false);
+        // 清空全局UI
+        dialogueUI.txtContent.SetText("");
+        dialogueUI.ClearAllBranchBtns();
+        dialogueUI.gameObject.SetActive(false);
 
-        // 解除游戏逻辑暂停，玩家恢复移动
         InputManager.CanPlayerMove = true;
-
-        // 解锁NPC巡逻移动
         WaypointMover mover = npc.GetComponent<WaypointMover>();
         if (mover != null) mover.isLockedByDialogue = false;
 
-        // 清空当前对话标记
         CurrentTalkingNPC = null;
         dialogueIndex = 0;
         isTyping = false;
+        isInBranchDialogue = false;
     }
     #endregion
 }
